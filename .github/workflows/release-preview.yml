@@ -1,0 +1,29 @@
+on:
+  push:
+    tags:
+    - "v[0-9]+.[0-9]+.[0-9]+-preview[0-9][0-9][0-9]"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+    - name: Set VERSION variable from tag
+      run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore --no-incremental
+    - name: Pack
+      run: dotnet pack --configuration Release /p:Version=${VERSION} --no-build --output .
+    - name: Push
+      run: dotnet nuget push SLZ.Serialize.${VERSION}.nupkg --source https://nuget.pkg.github.com/StressLevelZero/index.json --api-key ${GITHUB_TOKEN}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
