@@ -1,15 +1,9 @@
 ﻿// Copyright Stress Level Zero, 2018-present.
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Text.RegularExpressions;
 
 namespace SLZ.Serialize {
-    public interface IPackable {
-        void Pack(ObjectStore store, JObject json);
-        void Unpack(ObjectStore store, ObjectId objectId);
-    }
-
     public struct ObjectId : IEquatable<ObjectId> {
         public readonly string objectId;
 
