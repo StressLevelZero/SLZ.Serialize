@@ -9,8 +9,9 @@ using Newtonsoft.Json;
 
 namespace SLZ.Serialize {
     public class ObjectStore {
-        private const int FORMAT_VERSION = 1;
-        
+        [PublicAPI]
+        public const int FORMAT_VERSION = 2;
+
         private readonly Dictionary<Type, string> _types;
         private readonly Dictionary<string, Type> _typesReverse;
 
