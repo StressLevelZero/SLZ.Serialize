@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace SLZ.Serialize {
-    public class ObjectStore {
+    public partial class ObjectStore {
         [PublicAPI]
         public const int FORMAT_VERSION = 2;
 
@@ -23,39 +23,26 @@ namespace SLZ.Serialize {
         private readonly HashSet<IPackable> _objectSet;
         private readonly JObject _jsonDocument;
 
-        private ObjectStore(Dictionary<string, IPackable> objects, HashSet<IPackable> objectSet,
+        private ObjectStore(
+            IEnumerable<KeyValuePair<Type, string>> builtinTypes,
+            IEnumerable<KeyValuePair<Type, string>> types,
+            IEnumerable<KeyValuePair<string, string>> typeRenames,
+            IEnumerable<KeyValuePair<string, IPackable>> objects,
+            ISet<IPackable> objectSet,
             JObject jsonDocument) {
-            _typeRenames = new Dictionary<string, string>();
-
-            _builtinTypes = new Dictionary<Type, string>();
-            _types = new Dictionary<Type, string>();
+            _builtinTypes = new Dictionary<Type, string>(builtinTypes);
+            _types = new Dictionary<Type, string>(types);
+            _typeRenames = new Dictionary<string, string>(typeRenames);
+            
+            _objects = new Dictionary<string, IPackable>(objects);
+            _objectSet = new HashSet<IPackable>(objectSet);
+            _jsonDocument = jsonDocument;
+            
             _builtinTypesReverse = new Dictionary<string, Type>();
             _typesReverse = new Dictionary<string, Type>();
-
-            _objects = objects;
-            _objectSet = objectSet;
-            _jsonDocument = jsonDocument;
-        }
-
-        [PublicAPI]
-        public ObjectStore() : this(new Dictionary<string, IPackable>(), new HashSet<IPackable>(),
-            new JObject()) { }
-
-        [PublicAPI]
-        public ObjectStore(JObject jsonDocument) : this(new Dictionary<string, IPackable>(),
-            new HashSet<IPackable>(), jsonDocument) { } 
-
-        [PublicAPI]
-        public void AddBuiltins(Dictionary<Type, string> builtins) {
-            foreach (var (type, typeId) in builtins) {
-                _builtinTypes[type] = typeId;
-                _builtinTypesReverse[typeId] = type;
-            }
-        }
-        
-        [PublicAPI]
-        public void AddRenames(Dictionary<string, string> renames) {
-            foreach (var (from, to) in renames) { _typeRenames[from] = to; }
+            
+            foreach (var (type, typeId) in _builtinTypes) { _builtinTypesReverse[typeId] = type; }
+            foreach (var (type, typeId) in _types) { _typesReverse[typeId] = type; }
         }
         
         [PublicAPI]
