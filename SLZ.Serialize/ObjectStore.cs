@@ -11,23 +11,23 @@ namespace SLZ.Serialize {
         private const bool SLZ_DEBUG_TYPEINFO = false;
 
         private const int FORMAT_VERSION = 1;
-        private Dictionary<Type, TypeId> types;
-        private Dictionary<TypeId, Type> typesReverse;
+        private Dictionary<Type, TypeId> _types;
+        private Dictionary<TypeId, Type> _typesReverse;
 
-        private Dictionary<ObjectId, IPackable> objects;
-        private HashSet<IPackable> objectSet;
+        private Dictionary<ObjectId, IPackable> _objects;
+        private HashSet<IPackable> _objectSet;
 
-        private JObject jsonDocument;
+        private JObject _jsonDocument;
 
         private ObjectStore(Dictionary<ObjectId, IPackable> objects, HashSet<IPackable> objectSet,
             JObject jsonDocument) {
-            types = new Dictionary<Type, TypeId>();
-            typesReverse = new Dictionary<TypeId, Type>();
+            _types = new Dictionary<Type, TypeId>();
+            _typesReverse = new Dictionary<TypeId, Type>();
 
-            this.objects = objects;
-            this.objectSet = objectSet;
+            this._objects = objects;
+            this._objectSet = objectSet;
 
-            this.jsonDocument = jsonDocument;
+            this._jsonDocument = jsonDocument;
         }
 
         public ObjectStore() : this(new Dictionary<ObjectId, IPackable>(), new HashSet<IPackable>(),
@@ -38,7 +38,7 @@ namespace SLZ.Serialize {
 
         public bool TryGetJSON(string key, ObjectId forObject, out JToken result) {
             result = null;
-            if (!jsonDocument.TryGetValue("objects", out var objects)) { return false; }
+            if (!_jsonDocument.TryGetValue("objects", out var objects)) { return false; }
 
             // Get the object's dictionary
             if (!((JObject) objects).TryGetValue(forObject.ToString(), out var jsonObject)) { return false; }
@@ -58,13 +58,13 @@ namespace SLZ.Serialize {
             // Add the raw packable first.
             // If it needed to be added, unpack. Else it was already there.
             var referencedObjectId = new ObjectId(refInfo["ref"].ToObject<string>(), true);
-            if (!objects.ContainsKey(referencedObjectId)) {
+            if (!_objects.ContainsKey(referencedObjectId)) {
                 AddOrUpdateObject(referencedObjectId, packable);
                 packable.Unpack(this, referencedObjectId);
                 return true;
             }
 
-            if (objects[referencedObjectId] is TPackable p) {
+            if (_objects[referencedObjectId] is TPackable p) {
                 packable = p;
                 return true;
             }
@@ -83,7 +83,7 @@ namespace SLZ.Serialize {
 
             // Unknown type id. TODO: relinking
             var referencedTypeId = new TypeId(refInfo["type"].ToObject<string>(), true);
-            if (!typesReverse.ContainsKey(referencedTypeId)) {
+            if (!_typesReverse.ContainsKey(referencedTypeId)) {
                 packable = default;
                 return false;
             }
@@ -91,8 +91,8 @@ namespace SLZ.Serialize {
             // Add the raw packable first.
             // If it needed to be added, create then unpack. Else it was already there.
             var referencedObjectId = new ObjectId(refInfo["ref"].ToObject<string>(), true);
-            if (!objects.ContainsKey(referencedObjectId)) {
-                packable = factory(typesReverse[referencedTypeId]);
+            if (!_objects.ContainsKey(referencedObjectId)) {
+                packable = factory(_typesReverse[referencedTypeId]);
                 if (packable == null) { return false; }
 
                 AddOrUpdateObject(referencedObjectId, packable);
@@ -100,7 +100,7 @@ namespace SLZ.Serialize {
                 return true;
             }
 
-            if (objects[referencedObjectId] is TPackable p) {
+            if (_objects[referencedObjectId] is TPackable p) {
                 packable = p;
                 return true;
             }
@@ -138,7 +138,7 @@ namespace SLZ.Serialize {
             var refsDict = new JObject();
             const int recursionLimit = 8;
             for (var i = 0; i < recursionLimit; i++) {
-                var objectsCopy = new Dictionary<ObjectId, IPackable>(objects);
+                var objectsCopy = new Dictionary<ObjectId, IPackable>(_objects);
                 foreach (var entry in objectsCopy) {
                     var packable = entry.Value;
 
@@ -163,7 +163,7 @@ namespace SLZ.Serialize {
             json.Add("objects", refsDict);
 
             var typesDict = new JObject();
-            foreach (var entry in types) {
+            foreach (var entry in _types) {
                 var type = entry.Key;
                 var typeId = entry.Value;
                 typesDict[typeId.ToString()] = MakeTypeInfo(type, true);
@@ -180,24 +180,24 @@ namespace SLZ.Serialize {
         private ObjectId NextObjectId() { return new ObjectId($"{++currentObjectId}"); }
 
         private ObjectId AddObject(IPackable packable) {
-            if (objectSet.Contains(packable)) {
-                return objects.FirstOrDefault(entry => ReferenceEquals(entry.Value, packable)).Key;
+            if (_objectSet.Contains(packable)) {
+                return _objects.FirstOrDefault(entry => ReferenceEquals(entry.Value, packable)).Key;
             } else {
                 var objectId = NextObjectId();
-                objectSet.Add(packable);
-                objects[objectId] = packable;
+                _objectSet.Add(packable);
+                _objects[objectId] = packable;
                 return objectId;
             }
         }
 
         private ObjectId AddOrUpdateObject(ObjectId objectId, IPackable packable) {
-            if (objects.ContainsKey(objectId)) {
-                var previous = objects[objectId];
-                objectSet.Remove(previous);
+            if (_objects.ContainsKey(objectId)) {
+                var previous = _objects[objectId];
+                _objectSet.Remove(previous);
             }
 
-            objectSet.Add(packable);
-            objects[objectId] = packable;
+            _objectSet.Add(packable);
+            _objects[objectId] = packable;
             return objectId;
         }
 
@@ -209,20 +209,20 @@ namespace SLZ.Serialize {
         private TypeId NextTypeId() { return new TypeId($"{++currentTypeId}"); }
 
         private TypeId RegisterTypeId(Type type) {
-            if (types.TryGetValue(type, out var typeId)) { return typeId; }
+            if (_types.TryGetValue(type, out var typeId)) { return typeId; }
 
             typeId = NextTypeId();
-            types.Add(type, typeId);
-            typesReverse.Add(typeId, type);
+            _types.Add(type, typeId);
+            _typesReverse.Add(typeId, type);
             return typeId;
         }
 
         // NOTE: This does not do checking.
         private bool FillTypeId(Type type, TypeId typeId) {
-            if (types.ContainsKey(type)) { return types[type] == typeId && typesReverse[typeId] == type; }
+            if (_types.ContainsKey(type)) { return _types[type] == typeId && _typesReverse[typeId] == type; }
 
-            types[type] = typeId;
-            typesReverse[typeId] = type;
+            _types[type] = typeId;
+            _typesReverse[typeId] = type;
             return true;
         }
 
