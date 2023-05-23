@@ -14,12 +14,12 @@ namespace SLZ.Serialize {
         private Dictionary<Type, TypeId> types;
         private Dictionary<TypeId, Type> typesReverse;
 
-        private Dictionary<ObjectId, IJSONPackable> objects;
-        private HashSet<IJSONPackable> objectSet;
+        private Dictionary<ObjectId, IPackable> objects;
+        private HashSet<IPackable> objectSet;
 
         private JObject jsonDocument;
 
-        private ObjectStore(Dictionary<ObjectId, IJSONPackable> objects, HashSet<IJSONPackable> objectSet,
+        private ObjectStore(Dictionary<ObjectId, IPackable> objects, HashSet<IPackable> objectSet,
             JObject jsonDocument) {
             types = new Dictionary<Type, TypeId>();
             typesReverse = new Dictionary<TypeId, Type>();
@@ -30,11 +30,11 @@ namespace SLZ.Serialize {
             this.jsonDocument = jsonDocument;
         }
 
-        public ObjectStore() : this(new Dictionary<ObjectId, IJSONPackable>(), new HashSet<IJSONPackable>(),
+        public ObjectStore() : this(new Dictionary<ObjectId, IPackable>(), new HashSet<IPackable>(),
             new JObject()) { }
 
-        public ObjectStore(JObject jsonDocument) : this(new Dictionary<ObjectId, IJSONPackable>(),
-            new HashSet<IJSONPackable>(), jsonDocument) { }
+        public ObjectStore(JObject jsonDocument) : this(new Dictionary<ObjectId, IPackable>(),
+            new HashSet<IPackable>(), jsonDocument) { }
 
         public bool TryGetJSON(string key, ObjectId forObject, out JToken result) {
             result = null;
@@ -50,7 +50,7 @@ namespace SLZ.Serialize {
         }
 
         public bool TryUnpackReference<TPackable>(JToken token, ref TPackable packable)
-            where TPackable : IJSONPackable {
+            where TPackable : IPackable {
             // No or invalid JSON to unpack
             var refInfo = token as JObject;
             if (refInfo == null) { return false; }
@@ -73,7 +73,7 @@ namespace SLZ.Serialize {
         }
 
         public bool TryCreateFromReference<TPackable>(JToken token, out TPackable packable,
-            Func<Type, TPackable> factory) where TPackable : IJSONPackable {
+            Func<Type, TPackable> factory) where TPackable : IPackable {
             // No or invalid JSON to unpack
             var refInfo = token as JObject;
             if (refInfo == null) {
@@ -110,7 +110,7 @@ namespace SLZ.Serialize {
         }
 
 
-        public JObject PackReference<TPackable>(TPackable value) where TPackable : IJSONPackable {
+        public JObject PackReference<TPackable>(TPackable value) where TPackable : IPackable {
             var objectId = AddObject(value);
 
 #pragma warning disable CS0162 // Unreachable code detected
@@ -129,16 +129,16 @@ namespace SLZ.Serialize {
 #pragma warning restore CS0162 // Unreachable code detected
         }
 
-        public bool TryPack<TStorable>(TStorable root, out JObject json) where TStorable : IJSONPackable {
+        public bool TryPack<TStorable>(TStorable root, out JObject json) where TStorable : IPackable {
             json = new JObject();
             json.Add("version", FORMAT_VERSION);
             json.Add("root", PackReference(root));
 
-            var packedObjects = new HashSet<IJSONPackable>();
+            var packedObjects = new HashSet<IPackable>();
             var refsDict = new JObject();
             const int recursionLimit = 8;
             for (var i = 0; i < recursionLimit; i++) {
-                var objectsCopy = new Dictionary<ObjectId, IJSONPackable>(objects);
+                var objectsCopy = new Dictionary<ObjectId, IPackable>(objects);
                 foreach (var entry in objectsCopy) {
                     var packable = entry.Value;
 
@@ -179,7 +179,7 @@ namespace SLZ.Serialize {
         private int currentObjectId = 0;
         private ObjectId NextObjectId() { return new ObjectId($"{++currentObjectId}"); }
 
-        private ObjectId AddObject(IJSONPackable packable) {
+        private ObjectId AddObject(IPackable packable) {
             if (objectSet.Contains(packable)) {
                 return objects.FirstOrDefault(entry => ReferenceEquals(entry.Value, packable)).Key;
             } else {
@@ -190,7 +190,7 @@ namespace SLZ.Serialize {
             }
         }
 
-        private ObjectId AddOrUpdateObject(ObjectId objectId, IJSONPackable packable) {
+        private ObjectId AddOrUpdateObject(ObjectId objectId, IPackable packable) {
             if (objects.ContainsKey(objectId)) {
                 var previous = objects[objectId];
                 objectSet.Remove(previous);

@@ -5,7 +5,7 @@ using System;
 using System.Text.RegularExpressions;
 
 namespace SLZ.Serialize {
-    public interface IJSONPackable {
+    public interface IPackable {
         void Pack(ObjectStore store, JObject json);
         void Unpack(ObjectStore store, ObjectId objectId);
     }
