@@ -11,13 +11,13 @@ namespace SLZ.Serialize {
         private const bool SLZ_DEBUG_TYPEINFO = false;
 
         private const int FORMAT_VERSION = 1;
-        private Dictionary<Type, TypeId> _types;
-        private Dictionary<TypeId, Type> _typesReverse;
+        private readonly Dictionary<Type, TypeId> _types;
+        private readonly Dictionary<TypeId, Type> _typesReverse;
 
-        private Dictionary<ObjectId, IPackable> _objects;
-        private HashSet<IPackable> _objectSet;
+        private readonly Dictionary<ObjectId, IPackable> _objects;
+        private readonly HashSet<IPackable> _objectSet;
 
-        private JObject _jsonDocument;
+        private readonly JObject _jsonDocument;
 
         private ObjectStore(Dictionary<ObjectId, IPackable> objects, HashSet<IPackable> objectSet,
             JObject jsonDocument) {
