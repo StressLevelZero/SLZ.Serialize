@@ -12,33 +12,29 @@ namespace SLZ.Serialize {
         [PublicAPI]
         public const int FORMAT_VERSION = 2;
 
+        private readonly Dictionary<string, string> _typeRenames;
+
+        private readonly Dictionary<Type, string> _builtinTypes;
         private readonly Dictionary<Type, string> _types;
+        private readonly Dictionary<string, Type> _builtinTypesReverse;
         private readonly Dictionary<string, Type> _typesReverse;
 
         private readonly Dictionary<string, IPackable> _objects;
         private readonly HashSet<IPackable> _objectSet;
-
         private readonly JObject _jsonDocument;
-
-        private readonly Dictionary<string, string> _typeRenames;
-        
-        private readonly Dictionary<Type, string> _builtinTypes;
-        private readonly Dictionary<string, Type> _builtinTypesReverse;
 
         private ObjectStore(Dictionary<string, IPackable> objects, HashSet<IPackable> objectSet,
             JObject jsonDocument) {
+            _typeRenames = new Dictionary<string, string>();
+
+            _builtinTypes = new Dictionary<Type, string>();
             _types = new Dictionary<Type, string>();
+            _builtinTypesReverse = new Dictionary<string, Type>();
             _typesReverse = new Dictionary<string, Type>();
 
-            _typeRenames = new Dictionary<string, string>();
-            
-            _builtinTypes = new Dictionary<Type, string>();
-            _builtinTypesReverse = new Dictionary<string, Type>();
-            
-            this._objects = objects;
-            this._objectSet = objectSet;
-
-            this._jsonDocument = jsonDocument;
+            _objects = objects;
+            _objectSet = objectSet;
+            _jsonDocument = jsonDocument;
         }
 
         [PublicAPI]
@@ -49,7 +45,6 @@ namespace SLZ.Serialize {
         public ObjectStore(JObject jsonDocument) : this(new Dictionary<string, IPackable>(),
             new HashSet<IPackable>(), jsonDocument) { } 
 
-        [Obsolete("TODO: move this to a builder pattern of some sort")]
         [PublicAPI]
         public void AddBuiltins(Dictionary<Type, string> builtins) {
             foreach (var (type, typeId) in builtins) {
@@ -58,7 +53,6 @@ namespace SLZ.Serialize {
             }
         }
         
-        [Obsolete("TODO: move this to a builder pattern of some sort")]
         [PublicAPI]
         public void AddRenames(Dictionary<string, string> renames) {
             foreach (var (from, to) in renames) { _typeRenames[from] = to; }
