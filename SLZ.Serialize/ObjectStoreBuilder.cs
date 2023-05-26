@@ -19,7 +19,7 @@ namespace SLZ.Serialize {
                 _builtinTypes = builtinTypes;
                 return this;
             }
-            
+
             [PublicAPI]
             public ObjectStoreBuilder WithTypes(IEnumerable<KeyValuePair<Type, string>> types) {
                 _types = types;
@@ -51,7 +51,7 @@ namespace SLZ.Serialize {
             }
 
             [PublicAPI]
-            public ObjectStore Build() => 
+            public ObjectStore Build() =>
                 new ObjectStore(
                     _builtinTypes ?? new Dictionary<Type, string>(),
                     _types ?? new Dictionary<Type, string>(),

@@ -33,18 +33,18 @@ namespace SLZ.Serialize {
             _builtinTypes = new Dictionary<Type, string>(builtinTypes);
             _types = new Dictionary<Type, string>(types);
             _typeRenames = new Dictionary<string, string>(typeRenames);
-            
+
             _objects = new Dictionary<string, IPackable>(objects);
             _objectSet = new HashSet<IPackable>(objectSet);
             _jsonDocument = jsonDocument;
-            
+
             _builtinTypesReverse = new Dictionary<string, Type>();
             _typesReverse = new Dictionary<string, Type>();
-            
+
             foreach (var (type, typeId) in _builtinTypes) { _builtinTypesReverse[typeId] = type; }
             foreach (var (type, typeId) in _types) { _typesReverse[typeId] = type; }
         }
-        
+
         [PublicAPI]
         public bool TryGetJSON(string key, string objectId, out JToken result) {
             result = null;
@@ -277,7 +277,7 @@ namespace SLZ.Serialize {
 
             if (_typeRenames.TryGetValue(typeId, out var renamedTypeId)) {
                 isRenamed = true;
-                
+
                 if (_builtinTypesReverse.TryGetValue(renamedTypeId, out type)) {
                     isBuiltIn = true;
                     return true;
@@ -285,7 +285,7 @@ namespace SLZ.Serialize {
 
                 if (_typesReverse.TryGetValue(renamedTypeId, out type)) {
                     isBuiltIn = false;
-                    return true; 
+                    return true;
                 }
             }
 
