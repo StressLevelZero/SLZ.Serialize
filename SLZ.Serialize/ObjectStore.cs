@@ -220,21 +220,40 @@ namespace SLZ.Serialize {
             return typeId;
         }
 
+        /// <summary>
+        /// Loads and registers types from a JObject containing serialized type information.
+        /// The types are registered in `_types` and `_typesReverse` for quick lookup during deserialization.
+        /// </summary>
+        /// <param name="types">A JObject containing type information in serialized JSON form.</param>
         [PublicAPI]
         public void LoadTypes(JObject types) {
+            // 1. Check if the 'types' JObject is null or empty. If yes, return immediately.
             if (types == null || types.Count == 0) { return; }
 
-            // ReSharper disable once UseDeconstruction
-            foreach (var typeToken in types) {
-                var typeListKey = typeToken.Key;
+            // 2. Iterate over each property in the 'types' JObject. (NOTE: direct iteration seems to skip all entries)
+            foreach (var typeProperty in types.Properties()) {
+                var typeListKey = typeProperty.Name;
 
-                // The key is a built-in or already-known typeId, and doesn't need to be loaded
+                // 3. If the type ID is built-in or already known, skip the current iteration.
                 if (TryResolveTypeId(typeListKey, out _, out _, out _)) { continue; }
 
                 Type type = null;
-                // All types need to be registered by their key unless they are fully built-in (& none of them are on v1
-                // packed objects)
-                if (typeToken.Value is JObject typeObj && typeObj.TryGetValue("fullname", out var typeNameToken)) {
+                
+                // 4. If the property value contains the 'fullname' key, attempt to resolve the full name to a Type instance.
+                if (typeProperty.Value is JObject typeObj && typeObj.TryGetValue("fullname", out var typeNameToken)) {
+                    // 5. If the type resolution is successful and the type wasn't renamed, register the type mapping in
+                    // `_types`. Register the reverse mapping in '_typesReverse' regardless.
+                    if (TryResolveTypeId(typeNameToken.ToString(), out type, out _, out var renamed)) {
+                        if (!renamed) {
+                            if (!_types.TryAdd(type, typeListKey)) {
+                                Console.Error.WriteLine($"Could not register type '{typeListKey}' as '{type.FullName}'.");
+                            }
+                        }
+                        _typesReverse[typeListKey] = type;
+                        continue;
+                    }
+                    
+                    // 6. If the type resolution failed, attempt a final resolution using Type.GetType.
                     type = Type.GetType(typeNameToken.ToString());
                     if (type == null) {
                         Console.Error.WriteLine($"Did not find type for: '{typeObj.ToString(Formatting.None)}'.");
@@ -242,6 +261,8 @@ namespace SLZ.Serialize {
                     }
                 }
 
+                // 7. If the resolved type is not present in `_types`, register the type mapping in both `_types` and
+                // `_typesReverse`.
                 if (!_types.ContainsKey(type)) {
                     _types[type] = typeListKey;
                     _typesReverse[typeListKey] = type;
